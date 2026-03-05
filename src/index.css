@@ -1,0 +1,121 @@
+@import url('https://fonts.googleapis.com/css2?family=Hepta+Slab&display=swap');
+
+body {
+  font-family: 'Hepta Slab', serif;
+  margin: 0;
+  background-color: #ffffff;
+  color: #000;
+}
+
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.navbar {
+  position: absolute;   /* puts it on top of the page */
+  top: 0;
+  left: 0;
+  width: 100%;
+
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+
+  padding: 20px;
+  z-index: 10;          /* ensures it stays above the background */
+}
+.navbar a {
+  color: black;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.navbar a:hover {
+  color: #646cff;
+}
+
+
+
+.home {
+  background-image: url("/src/images/home-bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  min-height: 100vh;
+  width: 100%;
+}
+
+.home-content {
+  padding: 120px 40px; /* pushes text away from edges */
+}
+
+
+
+.grid-page {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  min-height: 100vh;
+  width: 100%;
+}
+
+.grid-content {
+  padding: 120px 40px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 30px;
+}
+.grid-page {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  min-height: 100vh;
+}
+
+.grid-content {
+  padding: 120px 40px;
+  display: flex;
+  justify-content: center;
+}
+
+.grid-container {
+  background: #91BFFF;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.editor {
+  display: flex;
+  gap: 30px;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar button {
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.palette {
+  display: flex;
+  gap: 8px;
+}
+
+.palette button {
+  width: 30px;
+  height: 30px;
+  border: 2px solid black;
+  cursor: pointer;
+}
