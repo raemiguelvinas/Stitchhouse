@@ -1,3 +1,7 @@
+/* ================================================================
+   ORIGINAL RULES — untouched
+   ================================================================ */
+
 @import url('https://fonts.googleapis.com/css2?family=Hepta+Slab&display=swap');
 
 body {
@@ -14,17 +18,15 @@ body {
 }
 
 .navbar {
-  position: absolute;   /* puts it on top of the page */
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-
   display: flex;
   justify-content: center;
   gap: 30px;
-
   padding: 20px;
-  z-index: 10;          /* ensures it stays above the background */
+  z-index: 10;
 }
 .navbar a {
   color: black;
@@ -32,58 +34,67 @@ body {
   font-weight: bold;
   font-size: 18px;
 }
-
 .navbar a:hover {
   color: #646cff;
 }
 
-
-
 .home {
-  background-image: url("/src/images/home-bg.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-
   min-height: 100vh;
   width: 100%;
+}
+
+.large-title {
+  font-family: 'Hepta Slab', serif;
+  font-size: 110px;
+  font-weight: bold;
+  margin: 0;
+  line-height: 1;
+}
+.large-subtitle {
+  font-family: 'Hepta Slab', serif;
+  font-size: 48px;
+  margin: 0 0 8px;
+}
+.home-body {
+  font-family: 'Hepta Slab', serif;
+  font-size: 18px;
+  color: #333;
+  max-width: 520px;
+  line-height: 1.7;
+  margin: 24px 0 0;
+  text-align: left;
 }
 
 .home-content {
-  padding: 120px 40px; /* pushes text away from edges */
+  padding: 120px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
 }
-
-
 
 .grid-page {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-
   min-height: 100vh;
   width: 100%;
 }
 
 .grid-content {
-  padding: 120px 40px;
-
+  padding: 120px 40px 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-start;
   gap: 30px;
-}
-.grid-page {
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-
   min-height: 100vh;
-}
-
-.grid-content {
-  padding: 120px 40px;
-  display: flex;
-  justify-content: center;
+  box-sizing: border-box;
 }
 
 .grid-container {
@@ -95,6 +106,10 @@ body {
 .editor {
   display: flex;
   gap: 30px;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 1000px;
 }
 
 .sidebar {
@@ -108,6 +123,7 @@ body {
   cursor: pointer;
 }
 
+
 .palette {
   display: flex;
   gap: 8px;
@@ -119,3 +135,325 @@ body {
   border: 2px solid black;
   cursor: pointer;
 }
+
+
+/* ================================================================
+   NEW ADDITIONS
+   ================================================================ */
+
+/* ── Button variants ─────────────────────────────────────── */
+.btn-primary {
+  background: #646cff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-family: 'Hepta Slab', serif;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.btn-secondary {
+  background: #fff;
+  color: #333;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-family: 'Hepta Slab', serif;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn-danger {
+  background: #e53935;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-family: 'Hepta Slab', serif;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.btn-disabled {
+  background: #d0d0d0;
+  color: #999;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-family: 'Hepta Slab', serif;
+  font-size: 14px;
+  cursor: not-allowed;
+}
+.btn-active {
+  background: #646cff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-family: 'Hepta Slab', serif;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+}
+.btn-large { padding: 12px 26px !important; font-size: 16px !important; }
+.btn-sm    { padding: 6px 12px  !important; font-size: 13px !important; }
+.btn-save {
+  background: #646cff;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 32px;
+  font-family: 'Hepta Slab', serif;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 16px rgba(100, 108, 255, 0.35);
+}
+
+/* ── Colour palette swatches ─────────────────────────────── */
+.palette--wide {
+  display: grid;
+  grid-template-columns: repeat(4, 40px);
+  gap: 8px;
+}
+.palette-swatch {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+/* ── Project header bar ──────────────────────────────────── */
+.project-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 10px;
+  padding: 10px 18px;
+  backdrop-filter: blur(4px);
+  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+.project-name { font-size: 20px; font-weight: bold; }
+.project-dims { font-size: 13px; color: #888; }
+
+/* ── No project prompt ───────────────────────────────────── */
+.no-project-prompt {
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: 16px;
+  padding: 48px 40px;
+  text-align: center;
+  max-width: 440px;
+  backdrop-filter: blur(4px);
+}
+.no-project-title { font-size: 26px; font-weight: bold; margin: 0 0 8px; }
+.no-project-sub   { font-size: 15px; color: #555; margin: 0 0 24px; }
+.no-project-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ── Editor error boundary ───────────────────────────────── */
+.editor-error {
+  background: #fff0f0;
+  border: 2px solid #e53935;
+  border-radius: 10px;
+  padding: 24px;
+  max-width: 500px;
+  font-family: 'Hepta Slab', serif;
+}
+
+/* ── Modals ──────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 16px;
+}
+.modal-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 36px 32px;
+  max-width: 460px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+  font-family: 'Hepta Slab', serif;
+}
+.modal-box--small { max-width: 360px; text-align: center; }
+.modal-title  { margin: 0 0 22px; font-size: 24px; }
+.modal-icon   { font-size: 48px; margin-bottom: 10px; }
+.modal-hint   { font-size: 12px; color: #999; margin: 0 0 20px; font-style: italic; }
+.modal-field  { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+.modal-field label { font-size: 13px; font-weight: bold; color: #555; }
+.modal-input {
+  padding: 10px 14px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: 'Hepta Slab', serif;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.modal-input:focus { border-color: #646cff; }
+.modal-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+.modal-box--small .modal-actions { justify-content: center; }
+
+/* ── Saved page ──────────────────────────────────────────── */
+.saved-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+.saved-header h1   { margin: 0; font-size: 48px; }
+.saved-count       { font-size: 14px; color: #666; margin: 0 0 18px; }
+.saved-empty-text  { font-size: 17px; color: #444; max-width: 400px; }
+
+/* ── Project cards ───────────────────────────────────────────────────────── */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(28vw, 280px), 1fr));
+  gap: 24px;
+  max-width: 960px;
+}
+.project-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 2px solid #e5e5e5;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Hepta Slab', serif;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  aspect-ratio: 1 / 1;
+  cursor: pointer;
+}
+.project-card__preview {
+  flex: 1;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 10px;
+  min-height: 0;
+}
+.project-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 10px;
+  border-top: 1px solid #eee;
+  background: #fff;
+  flex-shrink: 0;
+}
+.project-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.project-card__name {
+  font-size: 13px;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.project-card__meta    { font-size: 11px; color: #999; }
+.project-card__actions { display: flex; gap: 5px; flex-shrink: 0; }
+
+/* ── Mini preview ────────────────────────────────────────────────────────── */
+.mini-preview {
+  display: grid;
+  width: 100%;
+  height: 100%;
+}
+.mini-preview__cell {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+}
+.preview-empty { font-size: 30px; }
+
+/* ── User palette ────────────────────────────────────────────────────────── */
+.color-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.color-current {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  border: 2px solid #ccc;
+  flex-shrink: 0;
+}
+.color-picker-label {
+  position: relative;
+  cursor: pointer;
+}
+.color-picker-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 11px;
+  border-radius: 7px;
+  border: 2px solid #ccc;
+  background: #fff;
+  font-family: 'Hepta Slab', serif;
+  font-size: 13px;
+  font-weight: bold;
+  color: #444;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.color-picker-label:hover .color-picker-btn {
+  border-color: #646cff;
+  color: #646cff;
+}
+.color-custom-input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  top: 0; left: 0;
+  padding: 0;
+  border: none;
+}
+.color-limit-hint {
+  font-size: 11px;
+  color: #aaa;
+  font-family: 'Hepta Slab', serif;
+}
+
+/* right-click on a swatch to remove it — no button needed */
