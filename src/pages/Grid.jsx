@@ -4,10 +4,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Dotting, useDotting, BrushTool } from "dotting";
 import bg from "../images/home-bg.png";
 
-// ─── Shared storage helpers ───────────────────────────────────────────────────
+// ─── Storage helpers ──────────────────────────────────────────────────────────
 export const PROJECTS_KEY = "stitchhouse-projects";
 export const ACTIVE_KEY   = "stitchhouse-active";
-
 export function loadProjects() {
   try { return JSON.parse(localStorage.getItem(PROJECTS_KEY) || "[]"); }
   catch { return []; }
@@ -21,6 +20,40 @@ export function getActiveProject() {
 }
 export function setActiveProject(p) {
   localStorage.setItem(ACTIVE_KEY, p ? JSON.stringify(p) : "null");
+}
+
+// ─── Color naming ─────────────────────────────────────────────────────────────
+const NAMED_COLORS = [
+  ["black","#000000"],["white","#ffffff"],["red","#ff0000"],["lime","#00ff00"],
+  ["blue","#0000ff"],["yellow","#ffff00"],["cyan","#00ffff"],["magenta","#ff00ff"],
+  ["silver","#c0c0c0"],["gray","#808080"],["maroon","#800000"],["olive","#808000"],
+  ["green","#008000"],["purple","#800080"],["teal","#008080"],["navy","#000080"],
+  ["orange","#ffa500"],["coral","#ff7f50"],["salmon","#fa8072"],["gold","#ffd700"],
+  ["khaki","#f0e68c"],["indigo","#4b0082"],["violet","#ee82ee"],["pink","#ffc0cb"],
+  ["hotpink","#ff69b4"],["crimson","#dc143c"],["tomato","#ff6347"],["chocolate","#d2691e"],
+  ["sienna","#a0522d"],["brown","#a52a2a"],["tan","#d2b48c"],["wheat","#f5deb3"],
+  ["beige","#f5f5dc"],["ivory","#fffff0"],["lavender","#e6e6fa"],["plum","#dda0dd"],
+  ["orchid","#da70d6"],["peru","#cd853f"],["goldenrod","#daa520"],["turquoise","#40e0d0"],
+  ["skyblue","#87ceeb"],["steelblue","#4682b4"],["royalblue","#4169e1"],["slateblue","#6a5acd"],
+  ["limegreen","#32cd32"],["forestgreen","#228b22"],["darkgreen","#006400"],["seagreen","#2e8b57"],
+  ["darkorange","#ff8c00"],["orangered","#ff4500"],["firebrick","#b22222"],["darkred","#8b0000"],
+];
+function hexToRgb(hex) {
+  const h = hex.replace("#", "");
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+function nearestColorName(hex) {
+  if (!hex) return "";
+  try {
+    const [r,g,b] = hexToRgb(hex);
+    let best = "", bestDist = Infinity;
+    for (const [name, nhex] of NAMED_COLORS) {
+      const [nr,ng,nb] = hexToRgb(nhex);
+      const d = (r-nr)**2 + (g-ng)**2 + (b-nb)**2;
+      if (d < bestDist) { bestDist = d; best = name; }
+    }
+    return best;
+  } catch { return ""; }
 }
 
 // ─── Error boundary ───────────────────────────────────────────────────────────
@@ -56,6 +89,25 @@ function ABtn({ onClick, children, className = "btn-secondary", disabled = false
   );
 }
 
+// ─── Hover info bar ───────────────────────────────────────────────────────────
+function HoverBar({ hoverInfo, coordLabel, colorLabel }) {
+  return (
+    <div className="hover-info-bar">
+      {hoverInfo ? (
+        <>
+          <span className="hover-coord">{coordLabel}</span>
+          <span className="hover-divider">·</span>
+          <span className="hover-color-dot" style={{ background: hoverInfo.color }} />
+          <span className="hover-color-name">{colorLabel}</span>
+          <span className="hover-color-hex">{hoverInfo.color}</span>
+        </>
+      ) : (
+        <span style={{ opacity: 0.35 }}>Hover over the canvas</span>
+      )}
+    </div>
+  );
+}
+
 // ─── New Project Modal ────────────────────────────────────────────────────────
 function NewProjectModal({ onClose, onCreate }) {
   const [name, setName] = useState("");
@@ -78,7 +130,6 @@ function NewProjectModal({ onClose, onCreate }) {
         onClick={e => e.stopPropagation()}
       >
         <h2 className="modal-title">New Pattern</h2>
-
         <div className="modal-field">
           <label>Pattern Name</label>
           <input
@@ -90,7 +141,6 @@ function NewProjectModal({ onClose, onCreate }) {
             autoFocus
           />
         </div>
-
         <div className="modal-row">
           <div className="modal-field">
             <label>Rows</label>
@@ -103,9 +153,7 @@ function NewProjectModal({ onClose, onCreate }) {
               value={cols} onChange={e => setCols(e.target.value)} />
           </div>
         </div>
-
         <p className="modal-hint">Tip: 20 × 20 is a great size for beginners!</p>
-
         <div className="modal-actions">
           <ABtn onClick={onClose}>Cancel</ABtn>
           <ABtn
@@ -121,7 +169,7 @@ function NewProjectModal({ onClose, onCreate }) {
   );
 }
 
-// ─── Canvas ───────────────────────────────────────────────────────────────────
+// ─── Editor canvas ────────────────────────────────────────────────────────────
 const MAX_COLORS = 24;
 const DEFAULT_PALETTE = [
   "#000000", "#ffffff", "#ff4d4d", "#ff9900",
@@ -129,22 +177,25 @@ const DEFAULT_PALETTE = [
   "#8B4513", "#D2691E", "#F5DEB3", "#556B2F",
 ];
 
-function EditorCanvas({ project, onSave }) {
+function EditorCanvas({ project, onSave, saveRef }) {
   const ref = useRef(null);
+  const gridContainerRef = useRef(null);
   const { undo, redo } = useDotting(ref);
 
-  const [color, setColor] = useState("#000000");
-  const [tool, setTool]   = useState(BrushTool.DOT);
-  const [saved, setSaved] = useState(false);
-  const [palette, setPalette] = useState(() => {
+  const [color, setColor]           = useState("#000000");
+  const [tool, setTool]             = useState(BrushTool.DOT);
+  const [saved, setSaved]           = useState(false);
+  const [eyedropper, setEyedropper] = useState(false);
+  const [gridVisible, setGridVisible] = useState(true);
+  const [hoverInfo, setHoverInfo]   = useState(null);
+  const [pickerValue, setPickerValue] = useState("#ff0000");
+  const [palette, setPalette]       = useState(() => {
     try {
       const stored = localStorage.getItem("stitchhouse-palette");
       return stored ? JSON.parse(stored) : DEFAULT_PALETTE;
     } catch { return DEFAULT_PALETTE; }
   });
-  const [pickerValue, setPickerValue] = useState("#ff0000");
 
-  // Persist palette changes
   useEffect(() => {
     localStorage.setItem("stitchhouse-palette", JSON.stringify(palette));
   }, [palette]);
@@ -155,21 +206,59 @@ function EditorCanvas({ project, onSave }) {
     setPalette(prev => [...prev, c]);
     setColor(c);
   };
-
   const removeColor = (c) => {
     setPalette(prev => prev.filter(x => x !== c));
     if (color === c) setColor(palette[0] ?? "#000000");
   };
 
-  // initLayers: bake saved colors directly into the grid at construction time.
+  // Hover tracking
+  useEffect(() => {
+    if (!ref.current) return;
+    const onHover = ({ indices }) => {
+      if (!indices) { setHoverInfo(null); return; }
+      const { rowIndex, columnIndex } = indices;
+      let pixelColor = "";
+      try {
+        const layers = ref.current.getLayersAsArray();
+        pixelColor = layers[0]?.data?.[rowIndex]?.[columnIndex]?.color || "";
+      } catch (_) {}
+      setHoverInfo({ rowIndex, columnIndex, color: pixelColor || "#ffffff" });
+    };
+    ref.current.addHoverPixelChangeListener(onHover);
+    return () => { ref.current?.removeHoverPixelChangeListener(onHover); };
+  }, []);
+
+  // Eyedropper — capture phase mousedown on container
+  const hoverInfoRef = useRef(null);
+  useEffect(() => { hoverInfoRef.current = hoverInfo; }, [hoverInfo]);
+
+  useEffect(() => {
+    if (!eyedropper) return;
+    const container = gridContainerRef.current;
+    if (!container) return;
+    const onCapture = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const info = hoverInfoRef.current;
+      const picked = info?.color || "#ffffff";
+      setColor(picked);
+      setPalette(prev =>
+        prev.includes(picked) || prev.length >= MAX_COLORS ? prev : [...prev, picked]
+      );
+      setEyedropper(false);
+      setTool(BrushTool.DOT);
+    };
+    container.addEventListener("mousedown", onCapture, { capture: true });
+    return () => container.removeEventListener("mousedown", onCapture, { capture: true });
+  }, [eyedropper]);
+
   const initLayers = useMemo(() => {
     const data = project.gridData || {};
     return [{
       id: "layer1",
       data: Array.from({ length: project.rows }, (_, r) =>
         Array.from({ length: project.cols }, (_, c) => ({
-          rowIndex: r,
-          columnIndex: c,
+          rowIndex: r, columnIndex: c,
           color: data[r]?.[c]?.color || "",
         }))
       ),
@@ -180,50 +269,72 @@ function EditorCanvas({ project, onSave }) {
   const handleSave = useCallback(() => {
     if (!ref.current) return;
     try {
+      // also register this function so parent can trigger save
       const layers = ref.current.getLayersAsArray();
       const gridData = {};
-      const layer = layers[0];
-      if (layer?.data) {
-        layer.data.forEach((row) => {
-          row.forEach(({ rowIndex, columnIndex, color: c }) => {
-            if (!c) return;
-            if (!gridData[rowIndex]) gridData[rowIndex] = {};
-            gridData[rowIndex][columnIndex] = { color: c };
-          });
-        });
-      }
+      layers[0]?.data?.forEach(row =>
+        row.forEach(({ rowIndex, columnIndex, color: c }) => {
+          if (!c) return;
+          if (!gridData[rowIndex]) gridData[rowIndex] = {};
+          gridData[rowIndex][columnIndex] = { color: c };
+        })
+      );
       onSave(gridData);
       setSaved(true);
       setTimeout(() => setSaved(false), 1800);
-    } catch (e) {
-      console.error("[save] error:", e);
-    }
+    } catch (e) { console.error("[save] error:", e); }
   }, [onSave]);
+
+  // Register save function with parent so mode-switch can trigger it
+  useEffect(() => {
+    if (saveRef) saveRef.current = handleSave;
+  }, [saveRef, handleSave]);
+
+  const coordLabel = useMemo(() => {
+    if (!hoverInfo) return null;
+    const rowFromBottom = project.rows - hoverInfo.rowIndex;
+    const colFromLeft = hoverInfo.columnIndex + 1;
+    return `${rowFromBottom} ↑ · ${colFromLeft} →`;
+  }, [hoverInfo, project.rows]);
+
+  const colorLabel = useMemo(() => nearestColorName(hoverInfo?.color), [hoverInfo]);
 
   return (
     <div className="editor">
       <div className="sidebar">
         <h3>Tools</h3>
-        <ABtn onClick={() => setTool(BrushTool.DOT)}
-          className={tool === BrushTool.DOT ? "btn-active" : "btn-secondary"}>
-          Brush
-        </ABtn>
-        <ABtn onClick={() => setTool(BrushTool.ERASER)}
-          className={tool === BrushTool.ERASER ? "btn-active" : "btn-secondary"}>
-          Eraser
-        </ABtn>
-        <ABtn onClick={() => setTool(BrushTool.PAINT_BUCKET)}
-          className={tool === BrushTool.PAINT_BUCKET ? "btn-active" : "btn-secondary"}>
-          Fill
-        </ABtn>
+        <ABtn
+          onClick={() => { setTool(BrushTool.DOT); setEyedropper(false); }}
+          className={tool === BrushTool.DOT && !eyedropper ? "btn-active" : "btn-secondary"}
+        >✏️ Brush</ABtn>
+        <ABtn
+          onClick={() => { setTool(BrushTool.ERASER); setEyedropper(false); }}
+          className={tool === BrushTool.ERASER ? "btn-active" : "btn-secondary"}
+        >⬜ Eraser</ABtn>
+        <ABtn
+          onClick={() => { setTool(BrushTool.PAINT_BUCKET); setEyedropper(false); }}
+          className={tool === BrushTool.PAINT_BUCKET ? "btn-active" : "btn-secondary"}
+        >🪣 Fill</ABtn>
+        <ABtn
+          onClick={() => { setEyedropper(e => !e); setTool(BrushTool.DOT); }}
+          className={eyedropper ? "btn-active" : "btn-secondary"}
+        >🩸 Pick</ABtn>
         <ABtn onClick={undo}>↩ Undo</ABtn>
         <ABtn onClick={redo}>↪ Redo</ABtn>
+        <ABtn
+          onClick={() => setGridVisible(v => !v)}
+          className={gridVisible ? "btn-active" : "btn-secondary"}
+        >{gridVisible ? "⊞ Grid On" : "⊟ Grid Off"}</ABtn>
 
         <h3>Colors</h3>
-
-        {/* Add color row */}
         <div className="color-add-row">
-          <div className="color-current" style={{ background: color }} />
+          <motion.div
+            className="color-current"
+            style={{ background: color }}
+            animate={{ boxShadow: `0 0 0 3px ${color}55, 0 0 0 5px white` }}
+            transition={{ duration: 0.2 }}
+            title="Active color"
+          />
           <label className="color-picker-label" title="Pick a color">
             <input
               type="color"
@@ -238,18 +349,13 @@ function EditorCanvas({ project, onSave }) {
             <span className="color-limit-hint">Max {MAX_COLORS}</span>
           )}
         </div>
-
-        {/* User palette */}
         <div className="palette palette--wide">
           {palette.map(c => (
             <motion.button
               key={c}
               className="palette-swatch"
-              style={{
-                background: c,
-                boxShadow: color === c ? "0 0 0 3px #646cff" : "0 0 0 1px #aaa",
-              }}
-              onClick={() => setColor(c)}
+              style={{ background: c, boxShadow: color === c ? "0 0 0 3px #646cff" : "0 0 0 1px #aaa" }}
+              onClick={() => { setColor(c); setEyedropper(false); }}
               onContextMenu={e => { e.preventDefault(); removeColor(c); }}
               whileHover={{ scale: 1.18 }}
               whileTap={{ scale: 0.9 }}
@@ -258,7 +364,6 @@ function EditorCanvas({ project, onSave }) {
             />
           ))}
         </div>
-
         <motion.button
           onClick={handleSave}
           className="btn-save"
@@ -267,21 +372,350 @@ function EditorCanvas({ project, onSave }) {
           transition={{ type: "spring", stiffness: 380, damping: 18 }}
           style={{ marginTop: 16 }}
         >
-          {saved ? "✓ Saved!" : "Save"}
+          {saved ? "✓ Saved!" : "💾 Save"}
         </motion.button>
       </div>
 
-      <div className="grid-container">
-        <Dotting
-          ref={ref}
-          brushTool={tool}
-          brushColor={color}
-          backgroundColor="#ffffff"
-          width={700}
-          height={500}
-          isGridFixed={true}
-          initLayers={initLayers}
-        />
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <HoverBar hoverInfo={hoverInfo} coordLabel={coordLabel} colorLabel={colorLabel} />
+        <div
+          ref={gridContainerRef}
+          className="grid-container"
+          style={{ cursor: eyedropper ? "crosshair" : "default" }}
+        >
+          <Dotting
+            ref={ref}
+            brushTool={tool}
+            brushColor={color}
+            backgroundColor="#ffffff"
+            width={900}
+            height={680}
+            isGridFixed={true}
+            isGridVisible={gridVisible}
+            gridStrokeColor="#cccccc"
+            gridStrokeWidth={gridVisible ? 0.5 : 0}
+            initLayers={initLayers}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tracking mode ────────────────────────────────────────────────────────────
+function buildSections(gridData, rows, cols, startDir, vertDir) {
+  const sections = [];
+  const rowOrder = vertDir === "bottom"
+    ? Array.from({ length: rows }, (_, i) => rows - 1 - i)
+    : Array.from({ length: rows }, (_, i) => i);
+
+  rowOrder.forEach((rowIdx, lineNum) => {
+    const goRight = startDir === "left" ? lineNum % 2 === 0 : lineNum % 2 === 1;
+    const colOrder = goRight
+      ? Array.from({ length: cols }, (_, i) => i)
+      : Array.from({ length: cols }, (_, i) => cols - 1 - i);
+
+    let runColor = null;
+    let runCols = [];
+
+    const flushRun = () => {
+      if (runCols.length === 0) return;
+      sections.push({
+        rowIndex: rowIdx,
+        lineNum: lineNum + 1,
+        cols: [...runCols],
+        color: runColor || "#ffffff",
+        count: runCols.length,
+        goRight,
+      });
+      runCols = [];
+    };
+
+    colOrder.forEach(c => {
+      const color = gridData[rowIdx]?.[c]?.color || "#ffffff";
+      if (color === runColor) {
+        runCols.push(c);
+      } else {
+        flushRun();
+        runColor = color;
+        runCols = [c];
+      }
+    });
+    flushRun();
+  });
+
+  return sections;
+}
+
+function RowInstruction({ sections, current, granularity }) {
+  const rowSections = sections.filter(s => s.rowIndex === current.rowIndex);
+  const sectionIdxInRow = rowSections.indexOf(current);
+  const rowInstruction = rowSections.map(s => `${s.count} sc ${nearestColorName(s.color)}`).join(", ");
+  const totalSc = rowSections.reduce((n, s) => n + s.count, 0);
+
+  return (
+    <>
+      <div className="track-row-full">
+        <span className="track-row-label">
+          Row {current.lineNum} {current.goRight ? "(→)" : "(←)"}
+        </span>
+        <p className="track-row-written">{rowInstruction}. ({totalSc} sc)</p>
+      </div>
+      <div className="track-current">
+        <div className="track-current-swatch" style={{ background: current.color }} />
+        <div className="track-current-info">
+          {granularity === "section" && (
+            <span className="track-row-label">
+              Section {sectionIdxInRow + 1} of {rowSections.length}
+            </span>
+          )}
+          <span className="track-instruction">
+            <strong>{current.count} sc</strong> in{" "}
+            <strong>{nearestColorName(current.color)}</strong>
+            <span className="track-hex"> {current.color}</span>
+          </span>
+          <span className="track-dir">{current.goRight ? "→ left to right" : "← right to left"}</span>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function Lookahead({ sections, sectionCursor, cursor, total }) {
+  const upcomingRows = [];
+  const seen = new Set();
+  for (const s of sections.slice(sectionCursor + 1)) {
+    if (!seen.has(s.rowIndex)) {
+      seen.add(s.rowIndex);
+      const rowSecs = sections.filter(x => x.rowIndex === s.rowIndex);
+      upcomingRows.push({ lineNum: s.lineNum, goRight: s.goRight, rowSecs });
+    }
+    if (upcomingRows.length >= 4) break;
+  }
+
+  return (
+    <div className="track-lookahead">
+      <p className="track-lookahead-title">Next rows:</p>
+      {upcomingRows.length === 0 && cursor === total - 1 ? (
+        <p style={{ color: "#aaa", fontSize: 13 }}>🎉 Pattern complete!</p>
+      ) : (
+        upcomingRows.map((row, i) => (
+          <div key={i} className="track-lookahead-row-group">
+            <span className="track-lookahead-rowlabel">
+              Row {row.lineNum} {row.goRight ? "(→)" : "(←)"}
+            </span>
+            <div className="track-lookahead-swatches">
+              {row.rowSecs.map((s, j) => (
+                <span key={j} className="track-lookahead-chip">
+                  <span className="track-lookahead-swatch" style={{ background: s.color }} />
+                  {s.count} sc {nearestColorName(s.color)}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function TrackingMode({ project, dottingRef }) {
+  const [startDir, setStartDir]     = useState("right");
+  const [vertDir, setVertDir]       = useState("bottom");
+  const [granularity, setGranularity] = useState("section");
+  const [cursor, setCursor]         = useState(0);
+  const [hoverInfo, setHoverInfo]   = useState(null);
+  const [gridVisible, setGridVisible] = useState(true);
+
+  // Hover tracking
+  useEffect(() => {
+    if (!dottingRef.current) return;
+    const onHover = ({ indices }) => {
+      if (!indices) { setHoverInfo(null); return; }
+      const { rowIndex, columnIndex } = indices;
+      let pixelColor = "";
+      try {
+        const layers = dottingRef.current.getLayersAsArray();
+        pixelColor = layers[0]?.data?.[rowIndex]?.[columnIndex]?.color || "";
+      } catch (_) {}
+      setHoverInfo({ rowIndex, columnIndex, color: pixelColor || "#ffffff" });
+    };
+    dottingRef.current.addHoverPixelChangeListener(onHover);
+    return () => { dottingRef.current?.removeHoverPixelChangeListener(onHover); };
+  }, [dottingRef]);
+
+  const coordLabel = useMemo(() => {
+    if (!hoverInfo) return null;
+    const { rowIndex, columnIndex } = hoverInfo;
+    const crochetRow = vertDir === "bottom" ? project.rows - rowIndex : rowIndex + 1;
+    const lineNum = crochetRow - 1;
+    const goRight = startDir === "left" ? lineNum % 2 === 0 : lineNum % 2 === 1;
+    const stitchNum = goRight ? columnIndex + 1 : project.cols - columnIndex;
+    const stitchDir = goRight ? "→" : "←";
+    const vertArrow = vertDir === "bottom" ? "↑" : "↓";
+    return `${crochetRow} ${vertArrow} · ${stitchNum} ${stitchDir}`;
+  }, [hoverInfo, project.rows, project.cols, vertDir, startDir]);
+
+  const colorLabel = useMemo(() => nearestColorName(hoverInfo?.color), [hoverInfo]);
+
+  const trackInitLayers = useMemo(() => {
+    const data = project.gridData || {};
+    return [{
+      id: "layer1",
+      data: Array.from({ length: project.rows }, (_, r) =>
+        Array.from({ length: project.cols }, (_, c) => ({
+          rowIndex: r, columnIndex: c,
+          color: data[r]?.[c]?.color || "",
+        }))
+      ),
+    }];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const sections = useMemo(
+    () => buildSections(project.gridData || {}, project.rows, project.cols, startDir, vertDir),
+    [project.gridData, project.rows, project.cols, startDir, vertDir]
+  );
+
+  const rowStarts = useMemo(() => {
+    const seen = new Set();
+    return sections.reduce((acc, s, i) => {
+      if (!seen.has(s.rowIndex)) { seen.add(s.rowIndex); acc.push(i); }
+      return acc;
+    }, []);
+  }, [sections]);
+
+  const total = granularity === "section" ? sections.length : rowStarts.length;
+  const sectionCursor = granularity === "section" ? cursor : (rowStarts[cursor] ?? 0);
+  const current = sections[sectionCursor] ?? null;
+
+  // Highlight on canvas
+  useEffect(() => {
+    if (!dottingRef.current || !current) return;
+    let pixels;
+    if (granularity === "row") {
+      const rowSecs = sections.filter(s => s.rowIndex === current.rowIndex);
+      pixels = rowSecs.flatMap(s => s.cols.map(c => ({
+        rowIndex: s.rowIndex, columnIndex: c, color: "#646cff",
+      })));
+    } else {
+      pixels = current.cols.map(c => ({
+        rowIndex: current.rowIndex, columnIndex: c, color: "#646cff",
+      }));
+    }
+    try { dottingRef.current.setIndicatorPixels(pixels); } catch (_) {}
+    return () => { try { dottingRef.current?.setIndicatorPixels([]); } catch (_) {} };
+  }, [cursor, sections, granularity, dottingRef]);
+
+  // Keyboard nav
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.code === "Space")     { e.preventDefault(); setCursor(c => Math.min(c + 1, total - 1)); }
+      if (e.code === "Backspace") { e.preventDefault(); setCursor(c => Math.max(c - 1, 0)); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [total]);
+
+  useEffect(() => { setCursor(0); }, [startDir, vertDir, granularity]);
+
+  const prev = () => setCursor(c => Math.max(c - 1, 0));
+  const next = () => setCursor(c => Math.min(c + 1, total - 1));
+
+  return (
+    <div className="track-layout">
+      <div className="track-settings">
+        <span className="track-settings-label">Step by:</span>
+        <ABtn
+          onClick={() => { setGranularity("section"); setCursor(0); }}
+          className={granularity === "section" ? "btn-active btn-sm" : "btn-secondary btn-sm"}
+        >Color section</ABtn>
+        <ABtn
+          onClick={() => { setGranularity("row"); setCursor(0); }}
+          className={granularity === "row" ? "btn-active btn-sm" : "btn-secondary btn-sm"}
+        >Whole row</ABtn>
+        <span className="track-settings-label" style={{ marginLeft: 12 }}>Start dir:</span>
+        <ABtn
+          onClick={() => setStartDir("left")}
+          className={startDir === "left" ? "btn-active btn-sm" : "btn-secondary btn-sm"}
+        >← Left first</ABtn>
+        <ABtn
+          onClick={() => setStartDir("right")}
+          className={startDir === "right" ? "btn-active btn-sm" : "btn-secondary btn-sm"}
+        >Right first →</ABtn>
+        <span className="track-settings-label" style={{ marginLeft: 12 }}>Direction:</span>
+        <ABtn
+          onClick={() => setVertDir("bottom")}
+          className={vertDir === "bottom" ? "btn-active btn-sm" : "btn-secondary btn-sm"}
+        >↑ Bottom up</ABtn>
+        <ABtn
+          onClick={() => setVertDir("top")}
+          className={vertDir === "top" ? "btn-active btn-sm" : "btn-secondary btn-sm"}
+        >↓ Top down</ABtn>
+        <span className="track-settings-label" style={{ marginLeft: 12 }}>Grid:</span>
+        <ABtn
+          onClick={() => setGridVisible(v => !v)}
+          className={gridVisible ? "btn-active btn-sm" : "btn-secondary btn-sm"}
+        >{gridVisible ? "⊞ On" : "⊟ Off"}</ABtn>
+      </div>
+
+      <div className="track-body">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <HoverBar hoverInfo={hoverInfo} coordLabel={coordLabel} colorLabel={colorLabel} />
+          <div className="track-canvas-wrap">
+            <Dotting
+              key={`track-canvas-${gridVisible}`}
+              ref={dottingRef}
+              brushTool={BrushTool.DOT}
+              backgroundColor="#ffffff"
+              width={760}
+              height={580}
+              isGridFixed={true}
+              isDrawingEnabled={false}
+              isGridVisible={gridVisible}
+              gridStrokeColor="#cccccc"
+              gridStrokeWidth={gridVisible ? 0.5 : 0}
+              initLayers={trackInitLayers}
+            />
+          </div>
+        </div>
+
+        <div className="track-panel">
+          <div className="track-panel-scroll">
+            <div className="track-progress-bar">
+              <div
+                className="track-progress-fill"
+                style={{ width: `${total ? ((cursor + 1) / total) * 100 : 0}%` }}
+              />
+            </div>
+            <p className="track-progress-text">
+              {granularity === "section"
+                ? `${cursor + 1} / ${total} sections`
+                : `Row ${cursor + 1} / ${total}`}
+            </p>
+
+            {current && (
+              <RowInstruction
+                sections={sections}
+                current={current}
+                granularity={granularity}
+              />
+            )}
+
+            <Lookahead
+              sections={sections}
+              sectionCursor={sectionCursor}
+              cursor={cursor}
+              total={total}
+            />
+          </div>
+
+          <div className="track-nav">
+            <ABtn onClick={prev} className="btn-secondary" disabled={cursor === 0}>← Back</ABtn>
+            <span className="track-nav-hint">or Space / Backspace</span>
+            <ABtn onClick={next} className="btn-primary" disabled={cursor === total - 1}>Next →</ABtn>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -289,18 +723,18 @@ function EditorCanvas({ project, onSave }) {
 
 // ─── Grid page ────────────────────────────────────────────────────────────────
 function Grid() {
-  const navigate    = useNavigate();
-  const location    = useLocation();
+  const navigate  = useNavigate();
+  const location  = useLocation();
   const [active, setActiveState]  = useState(getActiveProject);
   const [showModal, setShowModal] = useState(false);
-  const activeRef = useRef(active);
+  const [mode, setMode]           = useState("draw");
+  const sharedDottingRef          = useRef(null);
+  const activeRef                 = useRef(active);
+  const editorSaveRef             = useRef(null); // set by EditorCanvas to trigger save
   useEffect(() => { activeRef.current = active; }, [active]);
 
-  // If we were sent here from Saved with ?new=1, open the modal immediately
   useEffect(() => {
-    if (location.search.includes("new=1")) {
-      setShowModal(true);
-    }
+    if (location.search.includes("new=1")) setShowModal(true);
   }, [location.search]);
 
   const handleCreate = ({ name, rows, cols }) => {
@@ -327,8 +761,9 @@ function Grid() {
     if (idx >= 0) all[idx] = updated; else all.unshift(updated);
     saveProjects(all);
     setActiveProject(updated);
-    // Don't call setActiveState — would cause EditorCanvas's parent to re-render
-    // and pass a new project prop which reinitialises gridRef
+    // Update active state so TrackingMode sees the latest gridData.
+    // EditorCanvas won't remount because its key is stable (active.id only).
+    setActiveState(updated);
   }, []);
 
   const handleClose = () => {
@@ -380,13 +815,32 @@ function Grid() {
               </div>
             </div>
 
-            <DottingBoundary>
-              <EditorCanvas
-                key={active.id}
+            <div className="mode-toggle">
+              <ABtn
+                onClick={() => setMode("draw")}
+                className={mode === "draw" ? "btn-active" : "btn-secondary"}
+              >✏️ Draw</ABtn>
+              <ABtn
+                onClick={() => { editorSaveRef.current?.(); setMode("track"); }}
+                className={mode === "track" ? "btn-active" : "btn-secondary"}
+              >🧶 Track Progress</ABtn>
+            </div>
+
+            {mode === "draw" ? (
+              <DottingBoundary>
+                <EditorCanvas
+                  key={active.id}
+                  project={active}
+                  onSave={handleSave}
+                  saveRef={editorSaveRef}
+                />
+              </DottingBoundary>
+            ) : (
+              <TrackingMode
                 project={active}
-                onSave={handleSave}
+                dottingRef={sharedDottingRef}
               />
-            </DottingBoundary>
+            )}
           </motion.div>
         )}
       </div>
