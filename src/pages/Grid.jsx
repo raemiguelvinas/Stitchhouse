@@ -269,7 +269,6 @@ function EditorCanvas({ project, onSave, saveRef }) {
   const handleSave = useCallback(() => {
     if (!ref.current) return;
     try {
-      // also register this function so parent can trigger save
       const layers = ref.current.getLayersAsArray();
       const gridData = {};
       layers[0]?.data?.forEach(row =>
@@ -461,27 +460,52 @@ function RowInstruction({ sections, current, granularity }) {
         </span>
         <p className="track-row-written">{rowInstruction}. ({totalSc} sc)</p>
       </div>
-      <div className="track-current">
-        <div className="track-current-swatch" style={{ background: current.color }} />
-        <div className="track-current-info">
-          {granularity === "section" && (
+      {granularity === "section" && (
+        <div className="track-current">
+          <div className="track-current-swatch" style={{ background: current.color }} />
+          <div className="track-current-info">
             <span className="track-row-label">
               Section {sectionIdxInRow + 1} of {rowSections.length}
             </span>
-          )}
-          <span className="track-instruction">
-            <strong>{current.count} sc</strong> in{" "}
-            <strong>{nearestColorName(current.color)}</strong>
-            <span className="track-hex"> {current.color}</span>
-          </span>
-          <span className="track-dir">{current.goRight ? "→ left to right" : "← right to left"}</span>
+            <span className="track-instruction">
+              <strong>{current.count} sc</strong> in{" "}
+              <strong>{nearestColorName(current.color)}</strong>
+              <span className="track-hex"> {current.color}</span>
+            </span>
+            <span className="track-dir">{current.goRight ? "→ left to right" : "← right to left"}</span>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
 
-function Lookahead({ sections, sectionCursor, cursor, total }) {
+function Lookahead({ sections, sectionCursor, cursor, total, granularity, current }) {
+  if (granularity === "row") {
+    const rowSections = current ? sections.filter(s => s.rowIndex === current.rowIndex) : [];
+    return (
+      <div className="track-lookahead">
+        <p className="track-lookahead-title">This row's blocks:</p>
+        {cursor === total - 1 && rowSections.length === 0 ? (
+          <p style={{ color: "#aaa", fontSize: 13 }}>🎉 Pattern complete!</p>
+        ) : (
+          rowSections.map((s, i) => (
+            <div key={i} className="track-lookahead-row-group">
+              <div className="track-lookahead-swatches">
+                <span className="track-lookahead-chip">
+                  <span className="track-lookahead-swatch" style={{ background: s.color }} />
+                  <strong>{s.count} sc</strong> {nearestColorName(s.color)}
+                  <span className="track-hex" style={{ marginLeft: 4 }}>{s.color}</span>
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    );
+  }
+
+  // Section mode: show upcoming rows
   const upcomingRows = [];
   const seen = new Set();
   for (const s of sections.slice(sectionCursor + 1)) {
@@ -495,7 +519,7 @@ function Lookahead({ sections, sectionCursor, cursor, total }) {
 
   return (
     <div className="track-lookahead">
-      <p className="track-lookahead-title">Next rows:</p>
+      <p className="track-lookahead-title">Coming up:</p>
       {upcomingRows.length === 0 && cursor === total - 1 ? (
         <p style={{ color: "#aaa", fontSize: 13 }}>🎉 Pattern complete!</p>
       ) : (
@@ -520,12 +544,30 @@ function Lookahead({ sections, sectionCursor, cursor, total }) {
 }
 
 function TrackingMode({ project, dottingRef }) {
-  const [startDir, setStartDir]     = useState("right");
-  const [vertDir, setVertDir]       = useState("bottom");
-  const [granularity, setGranularity] = useState("section");
-  const [cursor, setCursor]         = useState(0);
-  const [hoverInfo, setHoverInfo]   = useState(null);
+  const progress = (() => {
+    try {
+      const all = loadProjects();
+      const found = all.find(p => p.id === project.id);
+      return found?.trackProgress || {};
+    } catch { return {}; }
+  })();
+  const [startDir, setStartDir]       = useState(progress.startDir    || "right");
+  const [vertDir, setVertDir]         = useState(progress.vertDir     || "bottom");
+  const [granularity, setGranularity] = useState(progress.granularity || "section");
+  const [cursor, setCursor]           = useState(progress.cursor || 0);
+  const [hoverInfo, setHoverInfo]     = useState(null);
   const [gridVisible, setGridVisible] = useState(true);
+
+  const saveProgress = useCallback((update) => {
+    const all = loadProjects();
+    const idx = all.findIndex(p => p.id === project.id);
+    if (idx < 0) return;
+    const updated = { ...all[idx], trackProgress: { ...all[idx].trackProgress, ...update } };
+    all[idx] = updated;
+    saveProjects(all);
+    setActiveProject(updated);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id]);
 
   // Hover tracking
   useEffect(() => {
@@ -589,38 +631,89 @@ function TrackingMode({ project, dottingRef }) {
   const sectionCursor = granularity === "section" ? cursor : (rowStarts[cursor] ?? 0);
   const current = sections[sectionCursor] ?? null;
 
+  // ─── Progress bar: always based on rows completed, not sections ──────────
+  // In section mode, find which row index (0-based) we're currently on,
+  // then express that as a fraction of total rows.
+  const progressPct = useMemo(() => {
+    if (!project.rows) return 0;
+    if (granularity === "row") {
+      return ((cursor + 1) / total) * 100;
+    }
+    // Section mode: cursor indexes into sections[]. Find how many rowStarts
+    // are at or before the current sectionCursor — that's the completed-row count.
+    const currentRowIndex = rowStarts.findIndex(startIdx => startIdx > sectionCursor);
+    // currentRowIndex === -1 means we're on the last row (all rowStarts are <= sectionCursor)
+    const rowNum = currentRowIndex === -1 ? rowStarts.length : currentRowIndex;
+    return (rowNum / rowStarts.length) * 100;
+  }, [granularity, cursor, total, sectionCursor, rowStarts, project.rows]);
+
   // Highlight on canvas
   useEffect(() => {
     if (!dottingRef.current || !current) return;
-    let pixels;
-    if (granularity === "row") {
-      const rowSecs = sections.filter(s => s.rowIndex === current.rowIndex);
-      pixels = rowSecs.flatMap(s => s.cols.map(c => ({
-        rowIndex: s.rowIndex, columnIndex: c, color: "#646cff",
-      })));
-    } else {
-      pixels = current.cols.map(c => ({
-        rowIndex: current.rowIndex, columnIndex: c, color: "#646cff",
-      }));
-    }
-    try { dottingRef.current.setIndicatorPixels(pixels); } catch (_) {}
-    return () => { try { dottingRef.current?.setIndicatorPixels([]); } catch (_) {} };
+    const applyHighlight = () => {
+      let pixels;
+      if (granularity === "row") {
+        const rowSecs = sections.filter(s => s.rowIndex === current.rowIndex);
+        pixels = rowSecs.flatMap(s => s.cols.map(c => ({
+          rowIndex: s.rowIndex, columnIndex: c, color: "#646cff",
+        })));
+      } else {
+        pixels = current.cols.map(c => ({
+          rowIndex: current.rowIndex, columnIndex: c, color: "#646cff",
+        }));
+      }
+      try { dottingRef.current.setIndicatorPixels(pixels); } catch (_) {}
+    };
+    const t = setTimeout(applyHighlight, 100);
+    applyHighlight();
+    return () => {
+      clearTimeout(t);
+      try { dottingRef.current?.setIndicatorPixels([]); } catch (_) {}
+    };
   }, [cursor, sections, granularity, dottingRef]);
+
+  const cursorRef = useRef(cursor);
+  useEffect(() => { cursorRef.current = cursor; }, [cursor]);
 
   // Keyboard nav
   useEffect(() => {
     const onKey = (e) => {
-      if (e.code === "Space")     { e.preventDefault(); setCursor(c => Math.min(c + 1, total - 1)); }
-      if (e.code === "Backspace") { e.preventDefault(); setCursor(c => Math.max(c - 1, 0)); }
+      if (e.code === "Space") {
+        e.preventDefault();
+        const n = Math.min(cursorRef.current + 1, total - 1);
+        setCursor(n);
+        saveProgress({ cursor: n, startDir, vertDir, granularity });
+      }
+      if (e.code === "Backspace") {
+        e.preventDefault();
+        const n = Math.max(cursorRef.current - 1, 0);
+        setCursor(n);
+        saveProgress({ cursor: n, startDir, vertDir, granularity });
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [total]);
+  }, [total, saveProgress, startDir, vertDir, granularity]);
 
-  useEffect(() => { setCursor(0); }, [startDir, vertDir, granularity]);
+  const prevSettings = useRef({ startDir, vertDir, granularity });
+  useEffect(() => {
+    const prev = prevSettings.current;
+    if (prev.startDir === startDir && prev.vertDir === vertDir && prev.granularity === granularity) return;
+    prevSettings.current = { startDir, vertDir, granularity };
+    setCursor(0);
+    saveProgress({ cursor: 0, startDir, vertDir, granularity });
+  }, [startDir, vertDir, granularity]);
 
-  const prev = () => setCursor(c => Math.max(c - 1, 0));
-  const next = () => setCursor(c => Math.min(c + 1, total - 1));
+  const prev = () => {
+    const n = Math.max(cursorRef.current - 1, 0);
+    setCursor(n);
+    saveProgress({ cursor: n, startDir, vertDir, granularity });
+  };
+  const next = () => {
+    const n = Math.min(cursorRef.current + 1, total - 1);
+    setCursor(n);
+    saveProgress({ cursor: n, startDir, vertDir, granularity });
+  };
 
   return (
     <div className="track-layout">
@@ -685,12 +778,12 @@ function TrackingMode({ project, dottingRef }) {
             <div className="track-progress-bar">
               <div
                 className="track-progress-fill"
-                style={{ width: `${total ? ((cursor + 1) / total) * 100 : 0}%` }}
+                style={{ width: `${progressPct}%` }}
               />
             </div>
             <p className="track-progress-text">
               {granularity === "section"
-                ? `${cursor + 1} / ${total} sections`
+                ? `Row ${current?.lineNum ?? 0} / ${project.rows} · section ${cursor + 1} / ${total}`
                 : `Row ${cursor + 1} / ${total}`}
             </p>
 
@@ -707,6 +800,8 @@ function TrackingMode({ project, dottingRef }) {
               sectionCursor={sectionCursor}
               cursor={cursor}
               total={total}
+              granularity={granularity}
+              current={current}
             />
           </div>
 
@@ -730,7 +825,7 @@ function Grid() {
   const [mode, setMode]           = useState("draw");
   const sharedDottingRef          = useRef(null);
   const activeRef                 = useRef(active);
-  const editorSaveRef             = useRef(null); // set by EditorCanvas to trigger save
+  const editorSaveRef             = useRef(null);
   useEffect(() => { activeRef.current = active; }, [active]);
 
   useEffect(() => {
@@ -755,14 +850,13 @@ function Grid() {
   const handleSave = useCallback((gridData) => {
     const current = activeRef.current;
     if (!current) return;
-    const updated = { ...current, gridData, updatedAt: new Date().toISOString() };
     const all = loadProjects();
-    const idx = all.findIndex(p => p.id === updated.id);
+    const idx = all.findIndex(p => p.id === current.id);
+    const existing = idx >= 0 ? all[idx] : current;
+    const updated = { ...existing, gridData, updatedAt: new Date().toISOString() };
     if (idx >= 0) all[idx] = updated; else all.unshift(updated);
     saveProjects(all);
     setActiveProject(updated);
-    // Update active state so TrackingMode sees the latest gridData.
-    // EditorCanvas won't remount because its key is stable (active.id only).
     setActiveState(updated);
   }, []);
 

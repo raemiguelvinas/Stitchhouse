@@ -567,13 +567,14 @@ body {
   height: 8px;
   background: #eee;
   border-radius: 99px;
-  overflow: hidden;
+  
 }
 .track-progress-fill {
   height: 100%;
   background: #646cff;
   border-radius: 99px;
   transition: width 0.3s ease;
+  overflow: hidden;
 }
 .track-progress-text {
   font-size: 12px;
