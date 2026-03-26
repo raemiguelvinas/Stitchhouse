@@ -1,35 +1,52 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
 
+// Pages in the right-side pill nav (no Home — that's the logo on the left)
+const LINKS = [
+  { to: "/learning", label: "Learn" },
+  { to: "/grid",     label: "Grid"  },
+  { to: "/saved",    label: "Saved" },
+];
+
 function Navbar() {
-  const location = useLocation();
-
-  const links = [
-    { to: "/", label: "Home" },
-    { to: "/learning", label: "Learn" },
-    { to: "/grid", label: "Grid" },
-    { to: "/saved", label: "Saved" },
-  ];
-
+  const { pathname } = useLocation();
   return (
-    <div className="navbar">
-      {links.map(({ to, label }) => (
+    <nav className="navbar">
+      {/* Left: home logo button */}
+      <Link to="/" className="navbar-logo" aria-label="Home">
         <motion.div
-          key={to}
-          whileHover={{ y: -2, scale: 1.08 }}
+          className="navbar-logo-pill"
+          whileHover={{ scale: 1.08, y: -2 }}
           whileTap={{ scale: 0.93 }}
-          transition={{ type: "spring", stiffness: 400, damping: 20 }}
-          style={{ display: "inline-block" }}
+          transition={{ type: "spring", stiffness: 420, damping: 18 }}
         >
-          <Link
-            to={to}
-            className={location.pathname === to ? "nav-active" : ""}
-          >
-            {label}
-          </Link>
+          {/* Placeholder — swap src for your logo.png when ready */}
+          <span className="navbar-logo-placeholder">🏠</span>
         </motion.div>
-      ))}
-    </div>
+      </Link>
+
+      {/* Right: pill nav links */}
+      <div className="navbar-links">
+        {LINKS.map(({ to, label }) => {
+          const active = pathname === to;
+          return (
+            <motion.div
+              key={to}
+              whileHover={{ scale: 1.07, y: -2 }}
+              whileTap={{ scale: 0.93 }}
+              transition={{ type: "spring", stiffness: 420, damping: 18 }}
+            >
+              <Link
+                to={to}
+                className={`navbar-pill${active ? " navbar-pill--active" : ""}`}
+              >
+                {label}
+              </Link>
+            </motion.div>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 
