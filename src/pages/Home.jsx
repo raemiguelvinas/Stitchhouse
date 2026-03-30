@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import bg from "../images/home-bg.png";
 import PageTitle from "../components/PageTitle";
 
+
 const GRID_SIZE = 40;
 const GRID_ANGLE = 0; // set e.g. 15 for slanted
 

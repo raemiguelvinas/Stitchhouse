@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
 
+
 // Pages in the right-side pill nav (no Home — that's the logo on the left)
 const LINKS = [
   { to: "/learning", label: "Learn" },
