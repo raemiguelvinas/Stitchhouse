@@ -172,6 +172,11 @@ body {
   cursor: pointer;
 }
 
+.navbar-logo-img {
+  height: 100px;
+  width: auto;
+  display: block;
+}
 
 /* ================================================================
    NEW ADDITIONS

@@ -54,9 +54,8 @@ const LETTER_BLOCKS = [
 ];
 
 const NAV_BUTTONS = [
-  { label: "Create a Pattern", img: null /* TODO: import and put your PNG here e.g. import gridImg from "../images/grid-card.png" */, to: "/grid",     bg: "#FFD2D2" },
-  { label: "Start the Basics", img: null /* TODO: import and put your PNG here e.g. import learnImg from "../images/learn-card.png" */, to: "/learning", bg: "#F0FFB4" },
-  { label: "Learn to Stitch",  img: null /* TODO: import and put your PNG here e.g. import savedImg from "../images/saved-card.png" */, to: "/saved",    bg: "#E0C7FF" },
+  { label: "Start from the very basics!", to: "/learning",     bg: "#FFD2D2" },
+  { label: "Create your own colourwork pattern!", to: "/grid", bg: "#F0FFB4" },
 ];
  
 export default function Home() {
@@ -106,9 +105,9 @@ export default function Home() {
           <span className="home-divider-line" />
         </motion.div>
  
-        {/* Three big nav buttons */}
+        {/* Two big nav buttons */}
         <div className="home-cards">
-          {NAV_BUTTONS.map(({ label, img, to, bg }, i) => (
+          {NAV_BUTTONS.map(({ label, to, bg }, i) => (
             <motion.a
               key={to}
               href={to}
@@ -120,12 +119,6 @@ export default function Home() {
               whileHover={{ y: -8, scale: 1.03, boxShadow: "0 16px 40px rgba(0,0,0,0.13)" }}
               whileTap={{ scale: 0.97 }}
             >
-              <div className="home-card-img-wrap">
-                {img
-                  ? <img src={img} alt="" className="home-card-img" />
-                  : <div className="home-card-img-placeholder" />
-                }
-              </div>
               <span className="home-card-label">{label}</span>
             </motion.a>
           ))}
@@ -134,3 +127,4 @@ export default function Home() {
     </motion.div>
   );
 }
+ 

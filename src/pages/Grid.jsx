@@ -29,7 +29,6 @@ const GRID_LETTER_BLOCKS = [
   
 ];
 
-
 // ─── Storage helpers ──────────────────────────────────────────────────────────
 export const PROJECTS_KEY = "stitchhouse-projects";
 export const ACTIVE_KEY   = "stitchhouse-active";
@@ -47,7 +46,7 @@ export function getActiveProject() {
 export function setActiveProject(p) {
   localStorage.setItem(ACTIVE_KEY, p ? JSON.stringify(p) : "null");
 }
-
+ 
 // ─── Color naming ─────────────────────────────────────────────────────────────
 const NAMED_COLORS = [
   ["black","#000000"],["white","#ffffff"],["red","#ff0000"],["lime","#00ff00"],
@@ -81,7 +80,7 @@ function nearestColorName(hex) {
     return best;
   } catch { return ""; }
 }
-
+ 
 // ─── Error boundary ───────────────────────────────────────────────────────────
 class DottingBoundary extends Component {
   constructor(props) { super(props); this.state = { crashed: false, msg: "" }; }
@@ -98,7 +97,7 @@ class DottingBoundary extends Component {
     return this.props.children;
   }
 }
-
+ 
 // ─── Animated button ──────────────────────────────────────────────────────────
 function ABtn({ onClick, children, className = "btn-secondary", disabled = false }) {
   return (
@@ -114,7 +113,7 @@ function ABtn({ onClick, children, className = "btn-secondary", disabled = false
     </motion.button>
   );
 }
-
+ 
 // ─── Hover info bar ───────────────────────────────────────────────────────────
 function HoverBar({ hoverInfo, coordLabel, colorLabel }) {
   return (
@@ -133,14 +132,14 @@ function HoverBar({ hoverInfo, coordLabel, colorLabel }) {
     </div>
   );
 }
-
+ 
 // ─── New Project Modal ────────────────────────────────────────────────────────
 function NewProjectModal({ onClose, onCreate }) {
   const [name, setName] = useState("");
   const [rows, setRows] = useState(20);
   const [cols, setCols] = useState(20);
   const valid = name.trim().length > 0;
-
+ 
   return (
     <motion.div
       className="modal-overlay"
@@ -194,8 +193,37 @@ function NewProjectModal({ onClose, onCreate }) {
     </motion.div>
   );
 }
-
-
+ 
+// ─── Clear confirmation modal ─────────────────────────────────────────────────
+function ClearModal({ onConfirm, onCancel }) {
+  return (
+    <motion.div
+      className="modal-overlay"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      onClick={onCancel}
+    >
+      <motion.div
+        className="modal-box modal-box--small"
+        initial={{ scale: 0.85, y: 30, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        exit={{ scale: 0.88, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 26 }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="modal-icon">🗑️</div>
+        <h2 className="modal-title">Clear Canvas?</h2>
+        <p style={{ color: "#666", fontSize: 14, margin: "0 0 20px", lineHeight: 1.6 }}>
+          Are you sure you want to reset the canvas?<br />You won't be able to undo this.
+        </p>
+        <div className="modal-actions">
+          <ABtn onClick={onCancel}>Cancel</ABtn>
+          <ABtn onClick={onConfirm} className="btn-danger">Clear Everything</ABtn>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+ 
 // ─── Unsaved changes modal ────────────────────────────────────────────────────
 function UnsavedModal({ onDiscard, onSaveAndContinue, onCancel }) {
   return (
@@ -218,60 +246,26 @@ function UnsavedModal({ onDiscard, onSaveAndContinue, onCancel }) {
           You have unsaved changes to this pattern. What would you like to do?
         </p>
         <div className="modal-actions" style={{ flexDirection: "column", gap: 10 }}>
-          <ABtn onClick={onSaveAndContinue} className="btn-primary" style={{ width: "100%" }}>
-            💾 Save &amp; Continue
-          </ABtn>
-          <ABtn onClick={onDiscard} className="btn-danger">
-            Discard Changes
-          </ABtn>
+          <ABtn onClick={onSaveAndContinue} className="btn-primary">💾 Save &amp; Continue</ABtn>
+          <ABtn onClick={onDiscard} className="btn-danger">Discard Changes</ABtn>
           <ABtn onClick={onCancel}>Cancel</ABtn>
         </div>
       </motion.div>
     </motion.div>
   );
 }
-
-// ─── Clear confirmation modal ─────────────────────────────────────────────────
-function ClearModal({ onConfirm, onCancel }) {
-  return (
-    <motion.div
-      className="modal-overlay"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onClick={onCancel}
-    >
-      <motion.div
-        className="modal-box modal-box--small"
-        initial={{ scale: 0.85, y: 30, opacity: 0 }}
-        animate={{ scale: 1, y: 0, opacity: 1 }}
-        exit={{ scale: 0.88, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 26 }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="modal-icon">🗑️</div>
-        <h2 className="modal-title">Clear Canvas?</h2>
-        <p style={{ color: "#666", fontSize: 14, margin: "0 0 20px", lineHeight: 1.6 }}>
-          Are you sure you want to reset the canvas? <br></br> You won't be able to undo this...
-        </p>
-        <div className="modal-actions">
-          <ABtn onClick={onCancel}>Cancel</ABtn>
-          <ABtn onClick={onConfirm} className="btn-danger">Clear Everything</ABtn>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
+ 
 // ─── Controls modal ───────────────────────────────────────────────────────────
 const CONTROLS = [
-  { key: "Middle Mouse",  action: "Pan / move the canvas" },
-  { key: "Scroll",        action: "Zoom in and out" },
-  { key: "Ctrl + Z",      action: "Undo last stroke" },
-  { key: "Ctrl + Y",      action: "Redo" },
-  { key: "Right-click",   action: "Remove a palette color" },
-  { key: "Space",         action: "Next section (track mode)" },
-  { key: "Backspace",     action: "Previous section (track mode)" },
+  { key: "Middle Mouse",   action: "Pan / move the canvas" },
+  { key: "Scroll",         action: "Zoom in and out" },
+  { key: "Ctrl + Z",       action: "Undo last stroke" },
+  { key: "Ctrl + Y",       action: "Redo" },
+  { key: "Right-click",    action: "Remove a palette colour" },
+  { key: "Space",          action: "Next section (track mode)" },
+  { key: "Backspace",      action: "Previous section (track mode)" },
 ];
-
+ 
 function ControlsModal({ onClose }) {
   return (
     <motion.div
@@ -286,7 +280,7 @@ function ControlsModal({ onClose }) {
         exit={{ scale: 0.88, opacity: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 26 }}
         onClick={e => e.stopPropagation()}
-        style={{ maxWidth: 400 }}
+        style={{ maxWidth: 420 }}
       >
         <h2 className="modal-title">⌨️ Controls</h2>
         <div className="controls-list">
@@ -304,7 +298,7 @@ function ControlsModal({ onClose }) {
     </motion.div>
   );
 }
-
+ 
 // ─── Editor canvas ────────────────────────────────────────────────────────────
 const MAX_COLORS = 24;
 const DEFAULT_PALETTE = [
@@ -312,34 +306,34 @@ const DEFAULT_PALETTE = [
   "#ffff00", "#4dff88", "#4d79ff", "#cc44ff",
   "#8B4513", "#D2691E", "#F5DEB3", "#556B2F",
 ];
-
+ 
 function EditorCanvas({ project, onSave, saveRef }) {
   const ref = useRef(null);
   const gridContainerRef = useRef(null);
   const { undo, redo, clear } = useDotting(ref);
-
-  const [color, setColor]           = useState("#000000");
-  const [tool, setTool]             = useState(BrushTool.DOT);
-  const [saved, setSaved]           = useState(false);
-  const [dirty, setDirty]           = useState(false); // unsaved changes
-  const [eyedropper, setEyedropper] = useState(false);
-  const [showControls, setShowControls] = useState(false);
+ 
+  const [color, setColor]                   = useState("#000000");
+  const [tool, setTool]                     = useState(BrushTool.DOT);
+  const [saved, setSaved]                   = useState(false);
+  const [dirty, setDirty]                   = useState(false);
+  const [eyedropper, setEyedropper]         = useState(false);
+  const [showControls, setShowControls]     = useState(false);
   const [showClearModal, setShowClearModal] = useState(false);
-  const [wiping, setWiping]         = useState(false);
-  const [gridVisible, setGridVisible] = useState(true);
-  const [hoverInfo, setHoverInfo]   = useState(null);
-  const [pickerValue, setPickerValue] = useState("#ff0000");
-  const [palette, setPalette]       = useState(() => {
+  const [wiping, setWiping]                 = useState(false);
+  const [gridVisible, setGridVisible]       = useState(true);
+  const [hoverInfo, setHoverInfo]           = useState(null);
+  const [pickerValue, setPickerValue]       = useState("#ff0000");
+  const [palette, setPalette]               = useState(() => {
     try {
       const stored = localStorage.getItem("stitchhouse-palette");
       return stored ? JSON.parse(stored) : DEFAULT_PALETTE;
     } catch { return DEFAULT_PALETTE; }
   });
-
+ 
   useEffect(() => {
     localStorage.setItem("stitchhouse-palette", JSON.stringify(palette));
   }, [palette]);
-
+ 
   const addColor = (c) => {
     if (palette.includes(c)) { setColor(c); return; }
     if (palette.length >= MAX_COLORS) return;
@@ -350,7 +344,7 @@ function EditorCanvas({ project, onSave, saveRef }) {
     setPalette(prev => prev.filter(x => x !== c));
     if (color === c) setColor(palette[0] ?? "#000000");
   };
-
+ 
   // Hover tracking
   useEffect(() => {
     if (!ref.current) return;
@@ -367,7 +361,7 @@ function EditorCanvas({ project, onSave, saveRef }) {
     ref.current.addHoverPixelChangeListener(onHover);
     return () => { ref.current?.removeHoverPixelChangeListener(onHover); };
   }, []);
-
+ 
   // Mark dirty after any stroke
   useEffect(() => {
     if (!ref.current) return;
@@ -375,11 +369,11 @@ function EditorCanvas({ project, onSave, saveRef }) {
     ref.current.addStrokeEndListener(onStroke);
     return () => { ref.current?.removeStrokeEndListener(onStroke); };
   }, []);
-
+ 
   // Eyedropper — capture phase mousedown on container
   const hoverInfoRef = useRef(null);
   useEffect(() => { hoverInfoRef.current = hoverInfo; }, [hoverInfo]);
-
+ 
   useEffect(() => {
     if (!eyedropper) return;
     const container = gridContainerRef.current;
@@ -399,7 +393,7 @@ function EditorCanvas({ project, onSave, saveRef }) {
     container.addEventListener("mousedown", onCapture, { capture: true });
     return () => container.removeEventListener("mousedown", onCapture, { capture: true });
   }, [eyedropper]);
-
+ 
   const initLayers = useMemo(() => {
     const data = project.gridData || {};
     return [{
@@ -413,11 +407,10 @@ function EditorCanvas({ project, onSave, saveRef }) {
     }];
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
+ 
   const handleSave = useCallback(() => {
     if (!ref.current) return;
     try {
-      // also register this function so parent can trigger save
       const layers = ref.current.getLayersAsArray();
       const gridData = {};
       layers[0]?.data?.forEach(row =>
@@ -433,12 +426,12 @@ function EditorCanvas({ project, onSave, saveRef }) {
       setTimeout(() => setSaved(false), 1800);
     } catch (e) { console.error("[save] error:", e); }
   }, [onSave]);
-
+ 
   // Register save function + dirty flag with parent
   useEffect(() => {
     if (saveRef) saveRef.current = { save: handleSave, isDirty: () => dirty };
   }, [saveRef, handleSave, dirty]);
-
+ 
   // Clear with wipe animation
   const handleClear = () => {
     setShowClearModal(false);
@@ -449,16 +442,16 @@ function EditorCanvas({ project, onSave, saveRef }) {
       setTimeout(() => setWiping(false), 420);
     }, 420);
   };
-
+ 
   const coordLabel = useMemo(() => {
     if (!hoverInfo) return null;
     const rowFromBottom = project.rows - hoverInfo.rowIndex;
     const colFromLeft = hoverInfo.columnIndex + 1;
     return `${rowFromBottom} ↑ · ${colFromLeft} →`;
   }, [hoverInfo, project.rows]);
-
+ 
   const colorLabel = useMemo(() => nearestColorName(hoverInfo?.color), [hoverInfo]);
-
+ 
   return (
     <div className="editor">
       <div className="sidebar">
@@ -481,7 +474,7 @@ function EditorCanvas({ project, onSave, saveRef }) {
         >🩸 Pick</ABtn>
         <ABtn onClick={undo}>↩ Undo</ABtn>
         <ABtn onClick={redo}>↪ Redo</ABtn>
-
+ 
         <h3>Canvas</h3>
         <ABtn
           onClick={() => setGridVisible(v => !v)}
@@ -489,17 +482,17 @@ function EditorCanvas({ project, onSave, saveRef }) {
         >{gridVisible ? "⊞ Grid On" : "⊟ Grid Off"}</ABtn>
         <ABtn onClick={() => setShowControls(true)} className="btn-secondary">⌨️ Controls</ABtn>
         <ABtn onClick={() => setShowClearModal(true)} className="btn-danger">🗑️ Clear</ABtn>
-
-        <h3>Colors</h3>
+ 
+        <h3>Colours</h3>
         <div className="color-add-row">
           <motion.div
             className="color-current"
             style={{ background: color }}
             animate={{ boxShadow: `0 0 0 3px ${color}55, 0 0 0 5px white` }}
             transition={{ duration: 0.2 }}
-            title="Active color"
+            title="Active colour"
           />
-          <label className="color-picker-label" title="Pick a color">
+          <label className="color-picker-label" title="Pick a colour">
             <input
               type="color"
               value={pickerValue}
@@ -518,7 +511,7 @@ function EditorCanvas({ project, onSave, saveRef }) {
             <motion.button
               key={c}
               className="palette-swatch"
-              style={{ background: c, boxShadow: color === c ? "0 0 0 3px #646cff" : "0 0 0 1px #aaa" }}
+              style={{ background: c, boxShadow: color === c ? "0 0 0 3px #D75050" : "0 0 0 1px #aaa" }}
               onClick={() => { setColor(c); setEyedropper(false); }}
               onContextMenu={e => { e.preventDefault(); removeColor(c); }}
               whileHover={{ scale: 1.18 }}
@@ -531,7 +524,7 @@ function EditorCanvas({ project, onSave, saveRef }) {
         <motion.button
           onClick={handleSave}
           className="btn-save"
-          whileHover={{ scale: 1.04, y: -2, boxShadow: "0 8px 24px rgba(100,108,255,0.45)" }}
+          whileHover={{ scale: 1.04, y: -2, boxShadow: "0 8px 24px rgba(215,80,80,0.45)" }}
           whileTap={{ scale: 0.97 }}
           transition={{ type: "spring", stiffness: 380, damping: 18 }}
           style={{ marginTop: 16 }}
@@ -539,7 +532,7 @@ function EditorCanvas({ project, onSave, saveRef }) {
           {saved ? "✓ Saved!" : "💾 Save"}
         </motion.button>
       </div>
-
+ 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <HoverBar hoverInfo={hoverInfo} coordLabel={coordLabel} colorLabel={colorLabel} />
         <div
@@ -562,20 +555,17 @@ function EditorCanvas({ project, onSave, saveRef }) {
           />
         </div>
       </div>
+ 
       {/* Controls popup */}
       <AnimatePresence>
-        {showControls && (
-          <ControlsModal onClose={() => setShowControls(false)} />
-        )}
+        {showControls && <ControlsModal onClose={() => setShowControls(false)} />}
       </AnimatePresence>
-
+ 
       {/* Clear confirmation */}
       <AnimatePresence>
-        {showClearModal && (
-          <ClearModal onConfirm={handleClear} onCancel={() => setShowClearModal(false)} />
-        )}
+        {showClearModal && <ClearModal onConfirm={handleClear} onCancel={() => setShowClearModal(false)} />}
       </AnimatePresence>
-
+ 
       {/* Wipe animation */}
       <AnimatePresence>
         {wiping && (
@@ -584,30 +574,30 @@ function EditorCanvas({ project, onSave, saveRef }) {
             initial={{ x: "-110%" }}
             animate={{ x: "0%" }}
             exit={{ x: "110%" }}
-            transition={{ duration: 0.38, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.42, ease: [0.4, 0, 0.2, 1] }}
           />
         )}
       </AnimatePresence>
     </div>
   );
 }
-
+ 
 // ─── Tracking mode ────────────────────────────────────────────────────────────
 function buildSections(gridData, rows, cols, startDir, vertDir) {
   const sections = [];
   const rowOrder = vertDir === "bottom"
     ? Array.from({ length: rows }, (_, i) => rows - 1 - i)
     : Array.from({ length: rows }, (_, i) => i);
-
+ 
   rowOrder.forEach((rowIdx, lineNum) => {
     const goRight = startDir === "left" ? lineNum % 2 === 0 : lineNum % 2 === 1;
     const colOrder = goRight
       ? Array.from({ length: cols }, (_, i) => i)
       : Array.from({ length: cols }, (_, i) => cols - 1 - i);
-
+ 
     let runColor = null;
     let runCols = [];
-
+ 
     const flushRun = () => {
       if (runCols.length === 0) return;
       sections.push({
@@ -620,7 +610,7 @@ function buildSections(gridData, rows, cols, startDir, vertDir) {
       });
       runCols = [];
     };
-
+ 
     colOrder.forEach(c => {
       const color = gridData[rowIdx]?.[c]?.color || "#ffffff";
       if (color === runColor) {
@@ -633,25 +623,22 @@ function buildSections(gridData, rows, cols, startDir, vertDir) {
     });
     flushRun();
   });
-
+ 
   return sections;
 }
-
+ 
 function RowInstruction({ sections, current, granularity }) {
   const rowSections = sections.filter(s => s.rowIndex === current.rowIndex);
   const sectionIdxInRow = rowSections.indexOf(current);
   const rowInstruction = rowSections.map(s => `${s.count} sc ${nearestColorName(s.color)}`).join(", ");
   const totalSc = rowSections.reduce((n, s) => n + s.count, 0);
-
+ 
   return (
     <>
       <div className="track-row-full">
-        <div className="track-row-header">
-          <span className="track-row-label">Row {current.lineNum}</span>
-          <span className="track-direction-badge">
-            {current.goRight ? "→ Right" : "← Left"}
-          </span>
-        </div>
+        <span className="track-row-label">
+          Row {current.lineNum} {current.goRight ? "(→)" : "(←)"}
+        </span>
         <p className="track-row-written">{rowInstruction}. ({totalSc} sc)</p>
       </div>
       {granularity === "section" && (
@@ -673,10 +660,9 @@ function RowInstruction({ sections, current, granularity }) {
     </>
   );
 }
-
+ 
 function Lookahead({ sections, sectionCursor, cursor, total, granularity, current }) {
   if (granularity === "row") {
-    // In row mode: show all color blocks of the current row instead of coming up
     const rowSections = current ? sections.filter(s => s.rowIndex === current.rowIndex) : [];
     return (
       <div className="track-lookahead">
@@ -699,8 +685,8 @@ function Lookahead({ sections, sectionCursor, cursor, total, granularity, curren
       </div>
     );
   }
-
-  // Section mode: show upcoming rows
+ 
+  // Section mode: show only the next row
   const upcomingRows = [];
   const seen = new Set();
   for (const s of sections.slice(sectionCursor + 1)) {
@@ -709,9 +695,9 @@ function Lookahead({ sections, sectionCursor, cursor, total, granularity, curren
       const rowSecs = sections.filter(x => x.rowIndex === s.rowIndex);
       upcomingRows.push({ lineNum: s.lineNum, goRight: s.goRight, rowSecs });
     }
-    if (upcomingRows.length >= 4) break;
+    if (upcomingRows.length >= 1) break;
   }
-
+ 
   return (
     <div className="track-lookahead">
       <p className="track-lookahead-title">Coming up:</p>
@@ -737,10 +723,8 @@ function Lookahead({ sections, sectionCursor, cursor, total, granularity, curren
     </div>
   );
 }
-
+ 
 function TrackingMode({ project, dottingRef }) {
-  // Read directly from localStorage on mount so we always get the freshest data
-  // regardless of whether the parent's active state is stale
   const progress = (() => {
     try {
       const all = loadProjects();
@@ -754,8 +738,7 @@ function TrackingMode({ project, dottingRef }) {
   const [cursor, setCursor]           = useState(progress.cursor || 0);
   const [hoverInfo, setHoverInfo]     = useState(null);
   const [gridVisible, setGridVisible] = useState(true);
-
-  // Save progress to localStorage whenever cursor or settings change
+ 
   const saveProgress = useCallback((update) => {
     const all = loadProjects();
     const idx = all.findIndex(p => p.id === project.id);
@@ -764,11 +747,9 @@ function TrackingMode({ project, dottingRef }) {
     all[idx] = updated;
     saveProjects(all);
     setActiveProject(updated);
-
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id]);
-
+ 
   // Hover tracking
   useEffect(() => {
     if (!dottingRef.current) return;
@@ -785,7 +766,7 @@ function TrackingMode({ project, dottingRef }) {
     dottingRef.current.addHoverPixelChangeListener(onHover);
     return () => { dottingRef.current?.removeHoverPixelChangeListener(onHover); };
   }, [dottingRef]);
-
+ 
   const coordLabel = useMemo(() => {
     if (!hoverInfo) return null;
     const { rowIndex, columnIndex } = hoverInfo;
@@ -797,9 +778,9 @@ function TrackingMode({ project, dottingRef }) {
     const vertArrow = vertDir === "bottom" ? "↑" : "↓";
     return `${crochetRow} ${vertArrow} · ${stitchNum} ${stitchDir}`;
   }, [hoverInfo, project.rows, project.cols, vertDir, startDir]);
-
+ 
   const colorLabel = useMemo(() => nearestColorName(hoverInfo?.color), [hoverInfo]);
-
+ 
   const trackInitLayers = useMemo(() => {
     const data = project.gridData || {};
     return [{
@@ -813,12 +794,12 @@ function TrackingMode({ project, dottingRef }) {
     }];
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
+ 
   const sections = useMemo(
     () => buildSections(project.gridData || {}, project.rows, project.cols, startDir, vertDir),
     [project.gridData, project.rows, project.cols, startDir, vertDir]
   );
-
+ 
   const rowStarts = useMemo(() => {
     const seen = new Set();
     return sections.reduce((acc, s, i) => {
@@ -826,11 +807,11 @@ function TrackingMode({ project, dottingRef }) {
       return acc;
     }, []);
   }, [sections]);
-
+ 
   const total = granularity === "section" ? sections.length : rowStarts.length;
   const sectionCursor = granularity === "section" ? cursor : (rowStarts[cursor] ?? 0);
   const current = sections[sectionCursor] ?? null;
-
+ 
   // Highlight on canvas
   useEffect(() => {
     if (!dottingRef.current || !current) return;
@@ -839,28 +820,26 @@ function TrackingMode({ project, dottingRef }) {
       if (granularity === "row") {
         const rowSecs = sections.filter(s => s.rowIndex === current.rowIndex);
         pixels = rowSecs.flatMap(s => s.cols.map(c => ({
-          rowIndex: s.rowIndex, columnIndex: c, color: "#646cff",
+          rowIndex: s.rowIndex, columnIndex: c, color: "#D75050",
         })));
       } else {
         pixels = current.cols.map(c => ({
-          rowIndex: current.rowIndex, columnIndex: c, color: "#646cff",
+          rowIndex: current.rowIndex, columnIndex: c, color: "#D75050",
         }));
       }
       try { dottingRef.current.setIndicatorPixels(pixels); } catch (_) {}
     };
-    // Small delay on first mount to let the canvas finish initialising
     const t = setTimeout(applyHighlight, 100);
-    applyHighlight(); // also try immediately for subsequent changes
+    applyHighlight();
     return () => {
       clearTimeout(t);
       try { dottingRef.current?.setIndicatorPixels([]); } catch (_) {}
     };
   }, [cursor, sections, granularity, dottingRef]);
-
-  // Use a ref for cursor so keyboard handler always sees latest value
+ 
   const cursorRef = useRef(cursor);
   useEffect(() => { cursorRef.current = cursor; }, [cursor]);
-
+ 
   // Keyboard nav
   useEffect(() => {
     const onKey = (e) => {
@@ -880,8 +859,7 @@ function TrackingMode({ project, dottingRef }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [total, saveProgress, startDir, vertDir, granularity]);
-
-  // Only reset cursor when settings actually change from their initial values
+ 
   const prevSettings = useRef({ startDir, vertDir, granularity });
   useEffect(() => {
     const prev = prevSettings.current;
@@ -890,7 +868,7 @@ function TrackingMode({ project, dottingRef }) {
     setCursor(0);
     saveProgress({ cursor: 0, startDir, vertDir, granularity });
   }, [startDir, vertDir, granularity]);
-
+ 
   const prev = () => {
     const n = Math.max(cursorRef.current - 1, 0);
     setCursor(n);
@@ -901,7 +879,7 @@ function TrackingMode({ project, dottingRef }) {
     setCursor(n);
     saveProgress({ cursor: n, startDir, vertDir, granularity });
   };
-
+ 
   return (
     <div className="track-layout">
       <div className="track-settings">
@@ -938,7 +916,7 @@ function TrackingMode({ project, dottingRef }) {
           className={gridVisible ? "btn-active btn-sm" : "btn-secondary btn-sm"}
         >{gridVisible ? "⊞ On" : "⊟ Off"}</ABtn>
       </div>
-
+ 
       <div className="track-body">
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <HoverBar hoverInfo={hoverInfo} coordLabel={coordLabel} colorLabel={colorLabel} />
@@ -958,9 +936,8 @@ function TrackingMode({ project, dottingRef }) {
             />
           </div>
         </div>
-
+ 
         <div className="track-panel">
-          {/* Progress pinned at top, outside scroll */}
           <div className="track-progress-bar">
             <div
               className="track-progress-fill"
@@ -972,7 +949,7 @@ function TrackingMode({ project, dottingRef }) {
               ? `${cursor + 1} / ${total} sections`
               : `Row ${cursor + 1} / ${total}`}
           </p>
-
+ 
           <div className="track-panel-scroll">
             {current && (
               <RowInstruction
@@ -981,7 +958,6 @@ function TrackingMode({ project, dottingRef }) {
                 granularity={granularity}
               />
             )}
-
             <Lookahead
               sections={sections}
               sectionCursor={sectionCursor}
@@ -991,35 +967,49 @@ function TrackingMode({ project, dottingRef }) {
               current={current}
             />
           </div>
-
+ 
           <div className="track-nav">
-            <ABtn onClick={prev} className="btn-secondary" disabled={cursor === 0}>← Back</ABtn>
-            <span className="track-nav-hint">or Space / Backspace</span>
-            <ABtn onClick={next} className="btn-primary" disabled={cursor === total - 1}>Next →</ABtn>
+            <motion.button
+              onClick={prev}
+              className="track-nav-btn track-nav-btn--back"
+              disabled={cursor === 0}
+              whileHover={cursor === 0 ? {} : { scale: 1.05, x: -2 }}
+              whileTap={cursor === 0 ? {} : { scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 380, damping: 18 }}
+            >← Back</motion.button>
+            <span className="track-nav-hint">Space / Backspace</span>
+            <motion.button
+              onClick={next}
+              className="track-nav-btn track-nav-btn--next"
+              disabled={cursor === total - 1}
+              whileHover={cursor === total - 1 ? {} : { scale: 1.05, x: 2 }}
+              whileTap={cursor === total - 1 ? {} : { scale: 0.96 }}
+              transition={{ type: "spring", stiffness: 380, damping: 18 }}
+            >Next →</motion.button>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
+ 
 // ─── Grid page ────────────────────────────────────────────────────────────────
 function Grid() {
   const navigate  = useNavigate();
   const location  = useLocation();
-  const [active, setActiveState]  = useState(getActiveProject);
-  const [showModal, setShowModal] = useState(false);
-  const [mode, setMode]           = useState("draw");
-  const [unsavedTarget, setUnsavedTarget] = useState(null); // {action: fn} pending confirmation
-  const sharedDottingRef          = useRef(null);
-  const activeRef                 = useRef(active);
-  const editorSaveRef             = useRef(null); // set by EditorCanvas to trigger save
+  const [active, setActiveState]          = useState(getActiveProject);
+  const [showModal, setShowModal]         = useState(false);
+  const [mode, setMode]                   = useState("draw");
+  const [unsavedTarget, setUnsavedTarget] = useState(null);
+  const sharedDottingRef                  = useRef(null);
+  const activeRef                         = useRef(active);
+  const editorSaveRef                     = useRef(null);
   useEffect(() => { activeRef.current = active; }, [active]);
-
+ 
   useEffect(() => {
     if (location.search.includes("new=1")) setShowModal(true);
   }, [location.search]);
-
+ 
   const handleCreate = ({ name, rows, cols }) => {
     const project = {
       id: Date.now().toString(),
@@ -1034,21 +1024,25 @@ function Grid() {
     setActiveState(project);
     setShowModal(false);
   };
-
+ 
   const handleSave = useCallback((gridData) => {
     const current = activeRef.current;
     if (!current) return;
-    // Read fresh from storage to preserve trackProgress saved by TrackingMode
     const all = loadProjects();
     const idx = all.findIndex(p => p.id === current.id);
     const existing = idx >= 0 ? all[idx] : current;
-    const updated = { ...existing, gridData, updatedAt: new Date().toISOString(), lastSavedAt: new Date().toISOString() };
+    const updated = {
+      ...existing,
+      gridData,
+      updatedAt: new Date().toISOString(),
+      lastSavedAt: new Date().toISOString(),
+    };
     if (idx >= 0) all[idx] = updated; else all.unshift(updated);
     saveProjects(all);
     setActiveProject(updated);
     setActiveState(updated);
   }, []);
-
+ 
   // Warn on browser reload / tab close when there are unsaved changes
   useEffect(() => {
     const onBeforeUnload = (e) => {
@@ -1060,8 +1054,8 @@ function Grid() {
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [mode]);
-
-  // Intercept navbar/internal link clicks when there are unsaved changes
+ 
+  // Intercept navbar / internal link clicks when there are unsaved changes
   useEffect(() => {
     const onCapture = (e) => {
       if (!editorSaveRef.current?.isDirty?.()) return;
@@ -1077,8 +1071,7 @@ function Grid() {
     document.addEventListener("click", onCapture, { capture: true });
     return () => document.removeEventListener("click", onCapture, { capture: true });
   }, [mode, navigate]);
-
-  // Wrap potentially destructive actions with unsaved check
+ 
   const guardUnsaved = (action) => {
     if (editorSaveRef.current?.isDirty?.()) {
       setUnsavedTarget({ action });
@@ -1086,14 +1079,14 @@ function Grid() {
       action();
     }
   };
-
+ 
   const handleClose = () => {
     guardUnsaved(() => {
       setActiveProject(null);
       setActiveState(null);
     });
   };
-
+ 
   return (
     <motion.div
       className="grid-page page-bg"
@@ -1112,7 +1105,7 @@ function Grid() {
             {GRID_LETTER_BLOCKS}
           </PageTitle>
         </motion.div>
-
+ 
         {!active ? (
           <motion.div
             className="no-project-prompt"
@@ -1147,7 +1140,7 @@ function Grid() {
                 <ABtn onClick={handleClose} className="btn-secondary">Close</ABtn>
               </div>
             </div>
-
+ 
             <div className="mode-toggle">
               <motion.button
                 className={`learn-tab${mode === "draw" ? " learn-tab--active" : ""}`}
@@ -1158,13 +1151,13 @@ function Grid() {
               >Draw</motion.button>
               <motion.button
                 className={`learn-tab${mode === "track" ? " learn-tab--active" : ""}`}
-                onClick={() => { editorSaveRef.current?.save(); setMode("track"); }}
+                onClick={() => { editorSaveRef.current?.save?.(); setMode("track"); }}
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.96 }}
                 transition={{ type: "spring", stiffness: 380, damping: 18 }}
               >Track Progress</motion.button>
             </div>
-
+ 
             {mode === "draw" ? (
               <DottingBoundary>
                 <EditorCanvas
@@ -1183,20 +1176,19 @@ function Grid() {
           </motion.div>
         )}
       </div>
-
+ 
       <AnimatePresence>
         {showModal && (
           <NewProjectModal onClose={() => setShowModal(false)} onCreate={handleCreate} />
         )}
       </AnimatePresence>
-
-      {/* Unsaved changes warning */}
+ 
       <AnimatePresence>
         {unsavedTarget && (
           <UnsavedModal
             onDiscard={() => { unsavedTarget.action(); setUnsavedTarget(null); }}
             onSaveAndContinue={() => {
-              editorSaveRef.current?.save();
+              editorSaveRef.current?.save?.();
               unsavedTarget.action();
               setUnsavedTarget(null);
             }}
@@ -1207,5 +1199,5 @@ function Grid() {
     </motion.div>
   );
 }
-
+ 
 export default Grid;
